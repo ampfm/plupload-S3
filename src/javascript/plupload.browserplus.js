@@ -21,6 +21,22 @@
 	 */
 	plupload.runtimes.BrowserPlus = plupload.addRuntime("browserplus", {
 		/**
+		 * Returns a list of supported features for the runtime.
+		 *
+		 * @return {Object} Name/value object with supported features.
+		 */
+		getFeatures : function() {
+			return {
+				dragdrop : true,
+				jpgresize : true,
+				pngresize : true,
+				chunks : true,
+				progress: true,
+				multipart: true
+			};
+		},
+
+		/**
 		 * Initializes the browserplus runtime.
 		 *
 		 * @method init
@@ -151,7 +167,7 @@
 				});
 
 				uploader.bind("UploadFile", function(up, file) {
-					var nativeFile = browserPlusFiles[file.id], urlParams = {},
+					var nativeFile = browserPlusFiles[file.id], reqParams = {},
 					    chunkSize = up.settings.chunk_size, loadProgress, chunkStack = [];
 
 					function uploadFile(chunk, chunks) {
@@ -162,21 +178,21 @@
 							return;
 						}
 
-						urlParams.name = file.target_name || file.name;
+						reqParams.name = file.target_name || file.name;
 
 						// Only send chunk parameters if chunk size is defined
 						if (chunkSize) {
-							urlParams.chunk = chunk;
-							urlParams.chunks = chunks;
+							reqParams.chunk = "" + chunk;
+							reqParams.chunks = "" + chunks;
 						}
 
 					    chunkFile = chunkStack.shift();
 
 						browserPlus.Uploader.upload({
-							url : plupload.buildUrl(up.settings.url, urlParams),
+							url : up.settings.url,
 							files : {file : chunkFile},
 							cookies : document.cookies,
-							postvars : up.settings.multipart_params,
+							postvars : plupload.extend(reqParams, up.settings.multipart_params),
 							progressCallback : function(res) {
 								var i, loaded = 0;
 
@@ -216,8 +232,8 @@
 										status : httpStatus
 									});
 
-									// Response isn't 200 ok
-									if (httpStatus != 200) {
+									// Is error status
+									if (httpStatus >= 400) {
 										up.trigger('Error', {
 											code : plupload.HTTP_ERROR,
 											message : 'HTTP Error.',
@@ -281,13 +297,6 @@
 						chunkAndUploadFile(nativeFile);
 					}
 				});
-
-				uploader.features = {
-					dragdrop : true,
-					jpgresize : true,
-					pngresize : true,
-					chunks : true
-				};
 
 				callback({success : true});
 			}

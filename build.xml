@@ -25,11 +25,11 @@
 	<!-- Generate JS documentation -->
 	<target name="moxiedoc" depends="" description="Generates HTML documentation out of js source">
 		<delete quiet="true">
-			<fileset dir="docs\api" includes="**/*"/>
+			<fileset dir="docs/api" includes="**/*"/>
 		</delete>
 		<mkdir dir="docs" />
 
-		<moxiedoc outdir="docs\api" templatedir="tools\templates" msintellisense="docs\api\plupload.vsdoc.js" title="Plupload API">
+		<moxiedoc outdir="docs/api" templatedir="tools/templates" msintellisense="docs/api/plupload.vsdoc.js" title="Plupload API">
 			<fileset dir="src">
 				<exclude name="jquery.*" />
 				<exclude name="gears_init.js" />
@@ -44,6 +44,16 @@
 			<formatter type="xml" destfile="jslint.xml" />
 			<fileset dir="src/javascript" includes="*.js" excludes="gears_init.js" />
 		</jslint>
+	</target>
+
+	<target name="build-flash">
+		<exec executable="mxmlc">
+			<arg value="-compiler.source-path=./src/flash/plupload/src" />
+			<arg value="-target-player=10.1.0" />
+			<!-- <arg value="-compiler.debug" /> -->
+			<arg value="-output=./bin/plupload.flash.swf" />
+			<arg value="./src/flash/plupload/src/com/plupload/Plupload.as" />
+		</exec>
 	</target>
 
 	<target name="build">
@@ -61,6 +71,7 @@
 		<!-- Compress Plupload full and base using the YUI Compressor -->
 		<yuicompress infile="js/plupload.full.tmp.js" outfile="js/plupload.full.min.js" />
 		<yuicompress infile="src/javascript/jquery.plupload.queue.js" outfile="js/jquery.plupload.queue.min.js" />
+		<yuicompress infile="src/javascript/jquery.ui.plupload.js" outfile="js/jquery.ui.plupload.min.js" />
 		<yuicompress infile="src/javascript/plupload.js" outfile="js/plupload.min.js" />
 		<yuicompress infile="src/javascript/plupload.gears.js" outfile="js/plupload.gears.min.js" />
 		<yuicompress infile="src/javascript/plupload.silverlight.js" outfile="js/plupload.silverlight.min.js" />

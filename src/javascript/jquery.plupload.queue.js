@@ -9,7 +9,7 @@
  */
 
 // JSLint defined globals
-/*global plupload:false, jQuery:false */
+/*global plupload:false, jQuery:false, alert:false */
 
 (function($) {
 	var uploaders = {};
@@ -94,11 +94,6 @@
 					container : id
 				}, settings));
 
-				// Call preinit function
-				if (settings.preinit) {
-					settings.preinit(uploader);
-				}
-
 				uploaders[id] = uploader;
 
 				function handleStatus(file) {
@@ -127,11 +122,6 @@
 					$('span.plupload_total_status', target).html(uploader.total.percent + '%');
 					$('div.plupload_progress_bar', target).css('width', uploader.total.percent + '%');
 					$('span.plupload_upload_status', target).text('Uploaded ' + uploader.total.uploaded + '/' + uploader.files.length + ' files');
-
-					// All files are uploaded
-					if (uploader.total.uploaded == uploader.files.length) {
-						uploader.stop();
-					}
 				}
 
 				function updateList() {
@@ -182,7 +172,7 @@
 						$('span.plupload_add_text', target).text(uploader.total.queued + ' files queued.');
 					}
 
-					$('a.plupload_start', target).toggleClass('plupload_disabled', uploader.files.length === 0);
+					$('a.plupload_start', target).toggleClass('plupload_disabled', uploader.files.length == (uploader.total.uploaded + uploader.total.failed));
 
 					// Scroll to end of file list
 					fileList[0].scrollTop = fileList[0].scrollHeight;
@@ -256,9 +246,8 @@
 					});
 
 					$('a.plupload_stop', target).click(function(e) {
-						uploader.stop();
-
 						e.preventDefault();
+						uploader.stop();
 					});
 
 					$('a.plupload_start', target).addClass('plupload_disabled');
@@ -266,19 +255,22 @@
 
 				uploader.init();
 
-				// Call setup function
-				if (settings.setup) {
-					settings.setup(uploader);
-				}
-
 				uploader.bind("Error", function(up, err) {
 					var file = err.file, message;
 
 					if (file) {
 						message = err.message;
-						
+
 						if (err.details) {
 							message += " (" + err.details + ")";
+						}
+
+						if (err.code == plupload.FILE_SIZE_ERROR) {
+							alert(_("Error: File to large: ") + file.name);
+						}
+
+						if (err.code == plupload.FILE_EXTENSION_ERROR) {
+							alert(_("Error: Invalid file extension: ") + file.name);
 						}
 
 						$('#' + file.id).attr('class', 'plupload_failed').find('a').css('display', 'block').attr('title', message);
@@ -289,20 +281,19 @@
 					if (uploader.state === plupload.STARTED) {
 						$('li.plupload_delete a,div.plupload_buttons', target).hide();
 						$('span.plupload_upload_status,div.plupload_progress,a.plupload_stop', target).css('display', 'block');
-						$('span.plupload_upload_status', target).text('Uploaded 0/' + uploader.files.length + ' files');
+						$('span.plupload_upload_status', target).text('Uploaded ' + uploader.total.uploaded + '/' + uploader.files.length + ' files');
+
+						if (settings.multiple_queues) {
+							$('span.plupload_total_status,span.plupload_total_file_size', target).show();
+						}
 					} else {
+						updateList();
 						$('a.plupload_stop,div.plupload_progress', target).hide();
 						$('a.plupload_delete', target).css('display', 'block');
 					}
 				});
 
 				uploader.bind('QueueChanged', updateList);
-
-				uploader.bind('StateChanged', function(up) {
-					if (up.state == plupload.STOPPED) {
-						updateList();
-					}
-				});
 
 				uploader.bind('FileUploaded', function(up, file) {
 					handleStatus(file);
@@ -314,7 +305,18 @@
 
 					handleStatus(file);
 					updateTotalProgress();
+
+					if (settings.multiple_queues && uploader.total.uploaded + uploader.total.failed == uploader.files.length) {
+						$(".plupload_buttons,.plupload_upload_status", target).css("display", "inline");
+						$(".plupload_start", target).addClass("plupload_disabled");
+						$('span.plupload_total_status,span.plupload_total_file_size', target).hide();
+					}
 				});
+
+				// Call setup function
+				if (settings.setup) {
+					settings.setup(uploader);
+				}
 			});
 
 			return this;
